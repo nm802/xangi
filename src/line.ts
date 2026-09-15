@@ -570,6 +570,13 @@ export async function handleLineEvent(event: webhook.Event, ctx: HandlerContext)
   const message = event.message;
   if (!message) return;
 
+  // DEBUG(nm802/xangi#9): imageSet が実際にどう届くかを見る。index / total の欠落を確認するため
+  console.log(
+    `[imageset] type=${message.type} id=${message.id} at=${new Date().toISOString()} imageSet=${JSON.stringify(
+      (message as { imageSet?: unknown }).imageSet ?? null
+    )}`
+  );
+
   const source = event.source;
   const userId = source && 'userId' in source ? source.userId : undefined;
   const replyToken = 'replyToken' in event ? event.replyToken : undefined;
