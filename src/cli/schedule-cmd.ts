@@ -170,7 +170,11 @@ function scheduleInputError(input: string): string {
   } else if (/^cron\s+(?:\S+\s+){4}\S+$/i.test(value) || /^毎日\s+\d{1,2}:\d{2}$/.test(value)) {
     hint = 'A message is required.';
   }
-  return `Invalid schedule input: ${input}\n${hint} Example: --input "cron 0 9 * * * Send a reminder"`;
+  return [
+    `Invalid schedule input: ${input}`,
+    `${hint} Examples: --input "30分後 Send a reminder" (one-time), --input "cron 0 9 * * * Send a reminder" (recurring).`,
+    'See xangi tool help schedule_add for all forms.',
+  ].join('\n');
 }
 
 async function scheduleAdd(flags: Record<string, string>, scheduler?: Scheduler): Promise<string> {
