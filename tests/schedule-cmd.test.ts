@@ -239,6 +239,12 @@ describe('schedule-cmd WORKSPACE_PATH (PR #189)', () => {
     [{ id: 'missing', input: '0 9 * * *' }, 'The cron prefix and a message are required'],
     [{ id: 'missing', input: 'cron 0 9 * * *' }, 'A message is required'],
     [{ id: 'missing', input: '毎日 9:00' }, 'A message is required'],
+    [{ id: 'missing', input: 'in 1 minute リマインド' }, 'This schedule form is not recognized.'],
+    [
+      { id: 'missing', input: 'at 2026-10-19 08:31 UTC リマインド' },
+      'This schedule form is not recognized.',
+    ],
+    [{ id: 'missing', input: '30分後' }, 'A message is required'],
     [{ id: 'missing', input: '起動時 通知', message: '通知' }, 'cannot be used together'],
     [{ id: 'missing', message: '通知' }, 'スケジュールが見つかりません'],
     [{ id: 'missing', message: '通知', typo: 'x' }, 'Unknown schedule_update flag'],
