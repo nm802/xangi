@@ -162,12 +162,25 @@ async function scheduleList(scheduler?: Scheduler): Promise<string> {
   return formatScheduleList(schedules);
 }
 
+/** 数字・`*`・`/`・`-`・`,` だけでできた語。cron のフィールドとして読める */
+const CRON_FIELD = /^[\d*/,-]+$/;
+
+/** メッセージを足せば予定として通る＝時刻の書き方だけが書かれている */
+function isScheduleWithoutMessage(value: string): boolean {
+  try {
+    return parseScheduleInput(`${value} Send a reminder`) !== null;
+  } catch {
+    return false;
+  }
+}
+
 function scheduleInputError(input: string): string {
   const value = input.trim();
-  let hint = '--input requires both a schedule and a message; a time alone is not supported.';
-  if (/^(?:\S+\s+){4}\S+$/.test(value) && !value.startsWith('cron ')) {
+  const words = value.split(/\s+/);
+  let hint = 'This schedule form is not recognized.';
+  if (words.length === 5 && words.every((word) => CRON_FIELD.test(word))) {
     hint = 'The cron prefix and a message are required.';
-  } else if (/^cron\s+(?:\S+\s+){4}\S+$/i.test(value) || /^毎日\s+\d{1,2}:\d{2}$/.test(value)) {
+  } else if (isScheduleWithoutMessage(value)) {
     hint = 'A message is required.';
   }
   return [

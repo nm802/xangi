@@ -1,16 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import {
-  mkdtempSync,
-  rmSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-} from 'fs';
+import { mkdtempSync, rmSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { scheduleCmd } from '../src/cli/schedule-cmd.js';
-import { Scheduler, type Schedule } from '../src/scheduler.js';
+import { Scheduler, parseScheduleInput, type Schedule } from '../src/scheduler.js';
 
 /**
  * src/cli/schedule-cmd.ts のリグレッションテスト。
@@ -155,9 +148,7 @@ describe('schedule-cmd WORKSPACE_PATH (PR #189)', () => {
       message: '更新後の挨拶',
     });
 
-    const [updated] = JSON.parse(readFileSync(filePath, 'utf-8')) as Array<
-      Record<string, unknown>
-    >;
+    const [updated] = JSON.parse(readFileSync(filePath, 'utf-8')) as Array<Record<string, unknown>>;
     expect(result).toContain(`ID: ${before.id}`);
     expect(updated).toEqual({ ...before, message: '更新後の挨拶' });
   });
@@ -178,9 +169,7 @@ describe('schedule-cmd WORKSPACE_PATH (PR #189)', () => {
       input: '起動時に 更新後の起動通知',
     });
 
-    const [updated] = JSON.parse(readFileSync(filePath, 'utf-8')) as Array<
-      Record<string, unknown>
-    >;
+    const [updated] = JSON.parse(readFileSync(filePath, 'utf-8')) as Array<Record<string, unknown>>;
     expect(updated).toMatchObject({ type: 'startup', message: '更新後の起動通知' });
     expect(updated).not.toHaveProperty('expression');
     expect(updated).not.toHaveProperty('runAt');
@@ -194,18 +183,14 @@ describe('schedule-cmd WORKSPACE_PATH (PR #189)', () => {
       platform: 'discord',
     });
     const filePath = join(tmpDir, '.xangi', 'schedules.json');
-    const [created] = JSON.parse(readFileSync(filePath, 'utf-8')) as Array<
-      Record<string, unknown>
-    >;
+    const [created] = JSON.parse(readFileSync(filePath, 'utf-8')) as Array<Record<string, unknown>>;
 
     await scheduleCmd('schedule_update', {
       id: String(created.id),
       channel: 'discord-new',
     });
 
-    const [updated] = JSON.parse(readFileSync(filePath, 'utf-8')) as Array<
-      Record<string, unknown>
-    >;
+    const [updated] = JSON.parse(readFileSync(filePath, 'utf-8')) as Array<Record<string, unknown>>;
     expect(updated).toMatchObject({ platform: 'discord', channelId: 'discord-new' });
   });
 
@@ -242,9 +227,7 @@ describe('schedule-cmd WORKSPACE_PATH (PR #189)', () => {
       channel: '123456',
     });
 
-    const [updated] = JSON.parse(readFileSync(filePath, 'utf-8')) as Array<
-      Record<string, unknown>
-    >;
+    const [updated] = JSON.parse(readFileSync(filePath, 'utf-8')) as Array<Record<string, unknown>>;
     expect(updated).toMatchObject({ platform: 'discord', channelId: '123456' });
     expect(updated).not.toHaveProperty('projectId');
   });
@@ -256,6 +239,12 @@ describe('schedule-cmd WORKSPACE_PATH (PR #189)', () => {
     [{ id: 'missing', input: '0 9 * * *' }, 'The cron prefix and a message are required'],
     [{ id: 'missing', input: 'cron 0 9 * * *' }, 'A message is required'],
     [{ id: 'missing', input: '毎日 9:00' }, 'A message is required'],
+    [{ id: 'missing', input: 'in 1 minute リマインド' }, 'This schedule form is not recognized.'],
+    [
+      { id: 'missing', input: 'at 2026-10-19 08:31 UTC リマインド' },
+      'This schedule form is not recognized.',
+    ],
+    [{ id: 'missing', input: '30分後' }, 'A message is required'],
     [{ id: 'missing', input: '起動時 通知', message: '通知' }, 'cannot be used together'],
     [{ id: 'missing', message: '通知' }, 'スケジュールが見つかりません'],
     [{ id: 'missing', message: '通知', typo: 'x' }, 'Unknown schedule_update flag'],
@@ -274,9 +263,7 @@ describe('schedule-cmd WORKSPACE_PATH (PR #189)', () => {
     mkdirSync(join(tmpDir, '.xangi'), { recursive: true });
     writeFileSync(filePath, '{broken');
 
-    await expect(
-      scheduleCmd('schedule_update', { id: 's1', message: '更新' })
-    ).rejects.toThrow();
+    await expect(scheduleCmd('schedule_update', { id: 's1', message: '更新' })).rejects.toThrow();
     expect(readFileSync(filePath, 'utf-8')).toBe('{broken');
   });
 
@@ -294,9 +281,9 @@ describe('schedule-cmd WORKSPACE_PATH (PR #189)', () => {
     const before = readFileSync(filePath, 'utf-8');
     const [created] = JSON.parse(before) as Array<Record<string, unknown>>;
 
-    await expect(
-      scheduleCmd('schedule_update', { id: String(created.id), input })
-    ).rejects.toThrow(message);
+    await expect(scheduleCmd('schedule_update', { id: String(created.id), input })).rejects.toThrow(
+      message
+    );
     expect(readFileSync(filePath, 'utf-8')).toBe(before);
   });
 
@@ -344,8 +331,29 @@ describe('schedule-cmd WORKSPACE_PATH (PR #189)', () => {
     await scheduleCmd('schedule_update', { id: id!, message: '変更後' }, scheduler);
 
     expect(scheduler.get(id!)?.message).toBe('変更後');
-    const persisted = JSON.parse(readFileSync(join(dataDir, 'schedules.json'), 'utf-8')) as Schedule[];
+    const persisted = JSON.parse(
+      readFileSync(join(dataDir, 'schedules.json'), 'utf-8')
+    ) as Schedule[];
     expect(persisted.find((schedule) => schedule.id === id)?.message).toBe('変更後');
     scheduler.stopAll();
+  });
+  it('エラー文に載っている書き方も予定として受け付けられる', async () => {
+    const error = await scheduleCmd('schedule_add', {
+      input: 'in 1 minute リマインド',
+      channel: 'ch1',
+      platform: 'line',
+    }).catch((e: Error) => e);
+    if (!(error instanceof Error)) throw new Error('schedule_add should reject');
+
+    const examples = [...error.message.matchAll(/--input "([^"]+)"/g)].map((m) => m[1]);
+    expect(
+      examples.map((input) => {
+        const parsed = parseScheduleInput(input);
+        return [input, parsed && { type: parsed.type, expression: parsed.expression }];
+      })
+    ).toEqual([
+      ['30分後 Send a reminder', { type: 'once', expression: undefined }],
+      ['cron 0 9 * * * Send a reminder', { type: 'cron', expression: '0 9 * * *' }],
+    ]);
   });
 });
