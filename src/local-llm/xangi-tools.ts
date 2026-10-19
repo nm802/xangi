@@ -257,7 +257,7 @@ export function createScheduleAddHandler(
   return {
     name: 'schedule_add',
     description:
-      'Add a schedule. Omit channel and platform to send to the current conversation. Examples: "30分後 Send a reminder" (one-time), "cron 0 9 * * * Send a reminder" (recurring; a cron with a fixed day and month repeats every year)',
+      'Add a schedule. Omit channel and platform to send to the current conversation. Examples: "30分後 Send a reminder" (one-time), "cron 0 9 * * * Send a reminder" (recurring; a cron with a fixed day and month repeats every year). When it runs, the message is given to the agent as an instruction, so write what to do (e.g. "ユーザーに「起きて」と伝える")',
     parameters: {
       type: 'object',
       properties: {

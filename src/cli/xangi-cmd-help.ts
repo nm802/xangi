@@ -195,6 +195,7 @@ export const XANGI_CMD_HELP_ENTRIES: XangiCmdHelpEntry[] = [
         '    --input "毎時 <message>"  (毎時 15分 <message> for a fixed minute)',
         '    --input "cron 0 9 * * * <message>"',
       ].join('\n'),
+      'When the schedule runs, the message is given to the agent as an instruction, not sent as-is. Write what the agent should do, e.g. "ユーザーに「起きて」と伝える" rather than "起きて".',
       'For a one-off reminder, use a one-time form. A cron with a fixed day and month (e.g. "cron 35 17 19 10 *") repeats every year.',
       'Times are interpreted in the scheduler timezone (shown as "Timezone:" in the result), not the shell timezone. Relative forms such as "1分後" need no clock lookup.',
       'The keywords (分後, 毎日, 毎週月曜, ...) must be written in Japanese; English phrases such as "in 1 minute" are not accepted.',
